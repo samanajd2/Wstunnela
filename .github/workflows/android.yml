@@ -1,77 +1,99 @@
-name: Generated APK (Upload - Create Artifact To Github Action)
-
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
-
 permissions:
   contents: write
+name: Generated APK (Upload - Create Artifact To Github Action)
 
 env:
+  # The name of the main module repository
   main_project_module: app
+
+  # The name of the Play Store
   playstore_name: Feng
+
+on:
+  push:
+    tags:
+    - 'v*'
+
+
+  # Allows you to run this workflow manually from the Actions tab
+  # workflow_dispatch:
 
 jobs:
   build:
+
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      # 提取当前 Tag 并移除 'v' 前缀（例如 v1.0.0 → 1.0.0）
-      - name: Extract version from tag
-        id: extract_version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+      # Set Current Date As Env Variable
+      - name: Set current date as env variable
+        run: echo "date_today=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
-      # 更新 build.gradle.kts 中的 versionName
-      - name: Update versionName in build.gradle.kts
-        run: |
-          # 使用 sed 替换 versionName（兼容 Kotlin DSL）
-          sed -i "s|versionName = \".*\"|versionName = \"${{ steps.extract_version.outputs.version }}\"|" app/build.gradle.kts
-          # 打印修改后的文件（调试用）
-          cat ${{ env.main_project_module }}/build.gradle.kts | grep versionName
-          
-      # 更新wstunnel
-      - name: Run update_bin.sh
-        run: bash ./update_bin.sh
+      # Set Repository Name As Env Variable
+      - name: Set repository name as env variable
+        run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
 
-      # 后续步骤（保持不变）
-      - name: Set up JDK
+      - name: Set Up JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'zulu' # See 'Supported distributions' for available options
           java-version: '17'
           cache: 'gradle'
 
       - name: Change wrapper permissions
         run: chmod +x ./gradlew
 
+      # Run Tests Build
       - name: Run gradle tests
         run: ./gradlew test
 
+      # Run Build Project
       - name: Build gradle project
         run: ./gradlew build
 
-      - name: Build APK debug
-        run: ./gradlew assembleDebug
+      # Create APK Release
+      - name: Build apk release project (APK) - ${{ env.main_project_module }} module
+        run: ./gradlew assemble
 
-      - name: Upload APK Artifact
+      - name: Sign APK
+        id: sign
+        uses: ilharp/sign-android-release@nightly
+        with:
+          releaseDir: ${{ env.main_project_module }}/build/outputs/apk/release
+          signingKey: ${{ secrets.SIGNING_KEY }}
+          keyAlias: ${{ secrets.ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+          
+      - name: ConfigOrganze
+        id: organize_config
+        run: |
+          cd ${{ env.main_project_module }}/build/outputs/apk/
+          mv ./release/app-release-unsigned-signed.apk ./release/app-release-signed.apk
+          rm -rf ./release/app-release-un*
+          rm -rf ./release/key.jks
+          rm -rf ./release/output-metadata.json
+          tar -czvf  release.tar.gz ./release
+
+      # Noted For Output [main_project_module]/build/outputs/apk/release/
+      - name: Upload APK Release - ${{ env.repository_name }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.date_today }} - ${{ env.playstore_name }} - APK Release
+          name: ${{ env.date_today }} - ${{ env.playstore_name }} - ${{ env.repository_name }} - APK(s) release generated
           path: ${{ env.main_project_module }}/build/outputs/apk/release/
-
-      - name: Create GitHub Release
+          
+      - name: Get version
+        id: get_version
+        run: echo "${GITHUB_REF/refs\/tags\//}" >> $env:GITHUB_OUTPUT
+             # echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+    
+      - name: Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref_name }}
-          files: ${{ env.main_project_module }}/build/outputs/apk/release/app-release-signed.apk
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          files: |
+           ${{ env.main_project_module }}/build/outputs/apk/release/app-release-signed.apk
