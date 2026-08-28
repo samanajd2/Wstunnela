@@ -7,7 +7,7 @@ TARGET_DIR="app/src/main/assets"
 mkdir -p "$TARGET_DIR"
 
 # 获取最新 release 的所有信息
-RELEASE_JSON=$(curl -s https://api.github.com/repos/erebe/wstunnel/releases/latest)
+RELEASE_JSON=$(curl -s -H "User-Agent: wstunnela-builder" https://api.github.com/repos/erebe/wstunnel/releases/latest)
 
 # 提取 tag（比如 v10.5.0）
 LATEST_TAG=$(echo "$RELEASE_JSON" | jq -r '.tag_name')
