@@ -24,7 +24,7 @@ declare -A ARCH_MAP=(
 for ARCH in "${!ARCH_MAP[@]}"; do
   # 查找下载链接
   DOWNLOAD_URL=$(echo "$RELEASE_JSON" | jq -r \
-    --arg arch "$ARCH" \
+    --arg arch "android_arm64" \
     '.assets[] | select(.name | test($arch)) | .browser_download_url')
 
   if [ -z "$DOWNLOAD_URL" ]; then
