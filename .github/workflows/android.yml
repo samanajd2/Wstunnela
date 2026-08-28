@@ -1,6 +1,7 @@
 name: Generated APK (Upload - Create Artifact To Github Action)
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v.10.7.0'
