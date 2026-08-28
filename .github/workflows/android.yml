@@ -58,17 +58,8 @@ jobs:
       - name: Build gradle project
         run: ./gradlew build
 
-      - name: Build APK release
+      - name: Build APK debug
         run: ./gradlew assembleDebug
-
-      - name: Sign APK
-        uses: ilharp/sign-android-release@nightly
-        with:
-          releaseDir: ${{ env.main_project_module }}/build/outputs/apk/release
-          signingKey: ${{ secrets.SIGNING_KEY }}
-          keyAlias: ${{ secrets.ALIAS }}
-          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
 
       - name: Organize APK files
         run: |
