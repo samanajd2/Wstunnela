@@ -1,60 +1,74 @@
 name: Generated APK (Upload - Create Artifact To Github Action)
 
-env:
-  # The name of the main module repository
-  main_project_module: app
-
-  # The name of the Play Store
-  playstore_name: SamaNajd2
-
 on:
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    tags:
+      - 'v.10.7.0'
 
 permissions:
   contents: write
 
-
-  # Allows you to run this workflow manually from the Actions tab
-  # workflow_dispatch:
+env:
+  main_project_module: app
+  playstore_name: Feng
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      # Set Current Date As Env Variable
-      - name: Set current date as env variable
-        run: echo "date_today=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+      # 提取当前 Tag 并移除 'v' 前缀（例如 v1.0.0 → 1.0.0）
+      - name: Extract version from tag
+        id: extract_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-      # Set Repository Name As Env Variable
-      - name: Set repository name as env variable
-        run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+      # 更新 build.gradle.kts 中的 versionName
+      - name: Update versionName in build.gradle.kts
+        run: |
+          sed -i "s|versionName = \".*\"|versionName = \"${{ steps.extract_version.outputs.version }}\"|" ${{ env.main_project_module }}/build.gradle.kts
+          cat ${{ env.main_project_module }}/build.gradle.kts | grep versionName
+          
+      # 更新wstunnel
+      - name: Run update_bin.sh
+        run: bash ./update_bin.sh
 
-      - name: Set Up JDK
+      # 后续步骤（保持不变）
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu' # See 'Supported distributions' for available options
+          distribution: 'zulu'
           java-version: '17'
           cache: 'gradle'
 
       - name: Change wrapper permissions
         run: chmod +x ./gradlew
 
-      # Run Tests Build
       - name: Run gradle tests
         run: ./gradlew test
 
-    - name: Build with Gradle
-      run: ./gradlew assembleDebug
+      - name: Build gradle project
+        run: ./gradlew build
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-debug
-        path: app/build/outputs/apk/debug/app-debug.apk
+      # ❗️ تعديل بسيط: بناء Debug بدل Release
+      - name: Build APK debug
+        run: ./gradlew assembleDebug
+
+      # ❗️ حذف خطوة التوقيع بالكامل
+      # (تمت إزالتها)
+
+      # ❗️ حذف خطوة تنظيم ملفات Release لأنها تعتمد على ملفات غير موجودة
+      # (تمت إزالتها)
+
+      # رفع نسخة Debug
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.playstore_name }} - APK Debug
+          path: ${{ env.main_project_module }}/build/outputs/apk/debug/
+
+      # ❗️ حذف خطوة GitHub Release لأنها تعتمد على ملف Release موقّع
+      # (تمت إزالتها)
