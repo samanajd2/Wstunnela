@@ -1,7 +1,10 @@
 name: Generated APK (Upload - Create Artifact To Github Action)
 
 on:
+  workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 
