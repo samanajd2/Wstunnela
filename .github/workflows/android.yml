@@ -33,7 +33,7 @@ jobs:
       - name: Update versionName in build.gradle.kts
         run: |
           # 使用 sed 替换 versionName（兼容 Kotlin DSL）
-          sed -i "s/versionName = \".*\"/versionName = \"${{ steps.extract_version.outputs.version }}\"/" ${{ env.main_project_module }}/build.gradle.kts
+          sed -i "s|versionName = \".*\"|versionName = \"${{ steps.extract_version.outputs.version }}\"|" app/build.gradle.kts
           # 打印修改后的文件（调试用）
           cat ${{ env.main_project_module }}/build.gradle.kts | grep versionName
           
