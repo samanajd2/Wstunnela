@@ -16,7 +16,8 @@ echo "最新版本: $LATEST_TAG"
 # 架构与目标文件名映射
 declare -A ARCH_MAP=(
   ["linux_amd64"]="wstunnel_amd64"
-  ["android_arm64"]="wstunnel_arm64"
+  ["android_arm64"]="wstunnel_android_arm64"
+
 )
 
 # 遍历架构并处理
