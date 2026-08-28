@@ -1,5 +1,3 @@
-permissions:
-  contents: write
 name: Generated APK (Upload - Create Artifact To Github Action)
 
 env:
@@ -16,7 +14,7 @@ on:
     branches: [ "master" ]
 
 permissions:
-  contents: read
+  contents: write
 
 
   # Allows you to run this workflow manually from the Actions tab
