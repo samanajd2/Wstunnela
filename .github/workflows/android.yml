@@ -61,14 +61,6 @@ jobs:
       - name: Build APK debug
         run: ./gradlew assembleDebug
 
-      - name: Organize APK files
-        run: |
-          cd ${{ env.main_project_module }}/build/outputs/apk/
-          mv ./release/app-release-unsigned-signed.apk ./release/app-release-signed.apk
-          rm -rf ./release/app-release-un*
-          rm -rf ./release/output-metadata.json
-          tar -czvf release.tar.gz ./release
-
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
